@@ -570,7 +570,7 @@ def run_skull_animation():
     
     # A arte ASCII do crânio
     skull_art = [
-        "uu$$$$$$$$$$$uu",
+        "			  uu$$$$$$$$$$$uu",
         "          uu$$$$$$$$$$$$$$$$$uu",
         "         u$$$$$$$$$$$$$$$$$$$$$u",
         "        u$$$$$$$$$$$$$$$$$$$$$$$u",
@@ -1779,4 +1779,5 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
