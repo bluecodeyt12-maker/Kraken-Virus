@@ -4,7 +4,7 @@ from struct import pack
 import sys
 import socket
 '''
-THIS CODE IS EXACTLY THE SAME EXPLOIT CODE AS: eternalblue_exploit8.py. 
+THIS CODE IS EXACTLY THE SAME EXPLOIT CODE AS: eternalblue_exploit8.py from https://github.com/3ndG4me/AutoBlue-MS17-010
 I have simply modified it to include notes about exploiting Windows 10 with MS17-010.
 I also have it preset in the USERNAME var for organization to remind me of how the Windows 10 exploit variant works.
 Feel free to use this or the previous script, I just know many others use this repo so I am keeping my personal docs organized.
@@ -1435,3 +1435,4 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
