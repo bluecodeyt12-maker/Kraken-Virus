@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A virus package for max destruction"
 readme = "README.md"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "bluecode", email = "bluecodeyt12@gmail.com" }
 ]
 license = { file = "LICENSE" }
 classifiers = [
