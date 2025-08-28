@@ -10,9 +10,8 @@ readme = "README.md"
 authors = [
     { name = "bluecode", email = "bluecodeyt12@gmail.com" }
 ]
-license = { file = "LICENSE" }
+license = "MIT"
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -71,7 +70,3 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0"
 ]
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-packages = {find = {where = ["src"]}}
