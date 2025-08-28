@@ -10,12 +10,6 @@ on:
         required: true
         type: string
         default: 'main'
-      skip_publish:
-        description: 'Skip publishing to PyPI (build only)'
-        required: false
-        type: boolean
-        default: false
-
 permissions:
   contents: read
 
@@ -50,7 +44,7 @@ jobs:
       - release-build
     # Corrigindo a condição para ambos os eventos
     if: |
-      (github.event_name == 'workflow_dispatch' && !github.event.inputs.skip_publish) ||
+      (github.event_name == 'workflow_dispatch') ||
       github.event_name == 'release'
     permissions:
       id-token: write
