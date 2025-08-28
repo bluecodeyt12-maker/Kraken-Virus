@@ -1,46 +1,47 @@
-name: Publish Python Package
+name: Upload Python Package
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write  # Adicionado aqui também
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-    
-    - name: Install dependencies
-      run: pip install build
-    
-    - name: Build package
-      run: python -m build
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package
-        path: dist/
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          
+      - name: Install build
+        run: pip install build
+        
+      - name: Build package
+        run: python -m build
+        
+      - name: List artifacts
+        run: ls -la dist/
 
   publish:
     runs-on: ubuntu-latest
     needs: build
-    environment: pypi  # ← DEVE corresponder ao configurado no PyPI
+    environment:
+      name: pypi
     permissions:
-      id-token: write  # ← OBRIGATÓRIO para OIDC
-    
+      id-token: write  # Crucial para trusted publishing
+      
     steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: python-package
-        path: dist/
-    
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      # NÃO use 'with:' para credentials - OIDC automático
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+          
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
