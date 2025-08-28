@@ -54,7 +54,6 @@ dependencies = [
     "gnupg>=2.3.1",
     "pyopenssl>=23.2.0",
     "keyring>=24.2.0",
-    "plistlib3>=0.2.0; python_version < '3.8'",
     "nmap3>=3.9.9",
     "impacket>=0.10.0; platform_system == 'Windows'",
     "win32-setctime>=1.1.0; platform_system == 'Windows'"
@@ -76,6 +75,3 @@ dev = [
 [tool.setuptools]
 package-dir = {"" = "src"}
 packages = {find = {where = ["src"]}}
-
-[tool.setuptools.packages.find]
-where = ["src"]
