@@ -27,7 +27,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.release_tag }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -48,7 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-build
-    if: ${{ !github.event.inputs.skip_publish }}
+    # Corrigindo a condição para ambos os eventos
+    if: |
+      (github.event_name == 'workflow_dispatch' && !github.event.inputs.skip_publish) ||
+      github.event_name == 'release'
     permissions:
       id-token: write
 
