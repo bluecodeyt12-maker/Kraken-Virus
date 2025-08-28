@@ -1,4 +1,4 @@
-name: Upload Python Package
+name: Publish to PyPI  # ← Mude para este nome
 
 on:
   release:
@@ -58,10 +58,10 @@ jobs:
       - release-build
     if: success()
     permissions:
-      id-token: write
+      id-token: write  # ← Para OIDC
 
     environment:
-      name: pypi
+      name: pypi  # ← Este deve corresponder ao configurado no PyPI
 
     steps:
       - name: Retrieve release distributions
@@ -75,5 +75,4 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
+        # NÃO use 'with:' para credentials - OIDC funciona automaticamente
