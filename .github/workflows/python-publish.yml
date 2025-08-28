@@ -1,78 +1,46 @@
-name: Publish to PyPI  # ← Mude para este nome
+name: Publish Python Package
 
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        description: 'Release tag to build and publish (ex: v1.0.0)'
-        required: true
-        type: string
-        default: 'main'
-
-permissions:
-  contents: read
 
 jobs:
-  release-build:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref }}
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: pip install build
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package
+        path: dist/
 
-      - name: Verify Python project files
-        run: |
-          if [ ! -f "pyproject.toml" ] && [ ! -f "setup.py" ]; then
-            echo "❌ Error: No pyproject.toml or setup.py found"
-            ls -la
-            exit 1
-          fi
-          echo "✅ Python project files found"
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Install build dependencies
-        run: pip install build
-
-      - name: Build release distributions
-        run: python -m build
-
-      - name: List built distributions
-        run: ls -la dist/
-
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
-  pypi-publish:
+  publish:
     runs-on: ubuntu-latest
-    needs:
-      - release-build
-    if: success()
+    needs: build
+    environment: pypi  # ← DEVE corresponder ao configurado no PyPI
     permissions:
-      id-token: write  # ← Para OIDC
-
-    environment:
-      name: pypi  # ← Este deve corresponder ao configurado no PyPI
-
+      id-token: write  # ← OBRIGATÓRIO para OIDC
+    
     steps:
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
-      - name: List files before publishing
-        run: ls -la dist/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        # NÃO use 'with:' para credentials - OIDC funciona automaticamente
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package
+        path: dist/
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      # NÃO use 'with:' para credentials - OIDC automático
