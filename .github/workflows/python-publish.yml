@@ -10,6 +10,7 @@ on:
         required: true
         type: string
         default: 'main'
+
 permissions:
   contents: read
 
@@ -23,14 +24,27 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag || github.ref }}
 
+      - name: Verify Python project files
+        run: |
+          if [ ! -f "pyproject.toml" ] && [ ! -f "setup.py" ]; then
+            echo "❌ Error: No pyproject.toml or setup.py found"
+            ls -la
+            exit 1
+          fi
+          echo "✅ Python project files found"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
+      - name: Install build dependencies
+        run: pip install build
+
       - name: Build release distributions
-        run: |
-          python -m pip install build
-          python -m build
+        run: python -m build
+
+      - name: List built distributions
+        run: ls -la dist/
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -42,10 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-build
-    # Corrigindo a condição para ambos os eventos
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      github.event_name == 'release'
+    if: success()
     permissions:
       id-token: write
 
@@ -59,7 +70,10 @@ jobs:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
+      - name: List files before publishing
+        run: ls -la dist/
+
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
