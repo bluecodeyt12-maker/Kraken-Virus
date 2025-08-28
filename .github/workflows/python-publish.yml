@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag to build and publish'
+        description: 'Release tag to build and publish (ex: v1.0.0)'
         required: true
         type: string
-        default: 'latest'
+        default: 'main'
       skip_publish:
         description: 'Skip publishing to PyPI (build only)'
         required: false
@@ -24,7 +24,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.release_tag }}
 
@@ -47,15 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - release-build
-    # Skip publishing if skip_publish is true
     if: ${{ !github.event.inputs.skip_publish }}
     permissions:
       id-token: write
 
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL:
-      # url: https://pypi.org/p/YOURPROJECT
 
     steps:
       - name: Retrieve release distributions
