@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kraken123"
-version = "0.1.0"
+version = "0.2.0"
 description = "A virus package FOR EDUCATIONAL PURPOSES ONLY"
 readme = "README.md"
 authors = [
@@ -23,7 +23,6 @@ keywords = ["kraken", "virus", "security"]
 dependencies = [
     "numpy>=1.21.0",
     "keras>=3.0.0",
-    "tensorflow>=2.13.0",
     "scapy>=2.5.0",
     "paramiko>=3.2.0",
     "requests>=2.31.0",
@@ -69,4 +68,5 @@ dev = [
     "black>=23.0.0",
     "flake8>=6.0.0",
     "mypy>=1.0.0"
+    "tensorflow>=2.13.0",
 ]
