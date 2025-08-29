@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kraken123"
-version = "0.3.0"
+version = "0.4.0"
 description = "A virus package FOR EDUCATIONAL PURPOSES ONLY"
 readme = "README.md"
 authors = [
@@ -40,7 +40,7 @@ dependencies = [
     "sounddevice>=0.4.6",
     "opencv-python>=4.8.0",
     "pillow>=10.0.0",
-    "browserhistory>=0.4.0",
+    "browserhistory>=0.1.2",
     "pynput>=1.7.6",
     "aiohttp>=3.8.5",
     "aiosmtplib>=2.0.0",
