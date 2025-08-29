@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "krakenvirus"
+name = "kraken123"
 version = "0.1.0"
-description = "A virus package for max destruction"
+description = "A virus package FOR EDUCATIONAL PURPOSES ONLY"
 readme = "README.md"
 authors = [
-    { name = "bluecode", email = "bluecodeyt12@gmail.com" }
+    { name = "bluecode2", email = "bl00xkidd@gmail.com" }
 ]
 license = "MIT"
 classifiers = [
