@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kraken123"
-version = "0.4.0"
+version = "0.5.0"
 description = "A virus package FOR EDUCATIONAL PURPOSES ONLY"
 readme = "README.md"
 authors = [
@@ -52,7 +52,6 @@ dependencies = [
     "gnupg>=2.3.1",
     "pyopenssl>=23.2.0",
     "keyring>=24.2.0",
-    "nmap3>=3.9.9",
     "impacket>=0.10.0; platform_system == 'Windows'",
     "win32-setctime>=1.1.0; platform_system == 'Windows'"
 ]
